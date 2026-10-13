@@ -2,6 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const { sequelize } = require('./models');
 
+// Import routes
+const salaryRoutes = require('./routes/salaryRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
+const reportRoutes = require('./routes/reportRoutes');
+
 const app = express();
 
 // Middleware
@@ -29,7 +34,12 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
-// Root endpoint
+// Mount API routes
+app.use('/api/salaries', salaryRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/reports', reportRoutes);
+
+// Root informational endpoint
 app.get('/', (req, res) => {
   res.status(200).json({
     name: 'Salary Management System API (Sequelize + MySQL)',
@@ -37,7 +47,8 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/api/health',
       salaries: '/api/salaries',
-      analytics: '/api/analytics'
+      analytics: '/api/analytics',
+      reports: '/api/reports'
     }
   });
 });
@@ -52,10 +63,12 @@ app.use((req, res) => {
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-  console.error('Unhandled Server Error:', err);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: err.message || 'Something went wrong'
+  console.error('API Error:', err.message || err);
+  const status = err.statusCode || 500;
+  res.status(status).json({
+    success: false,
+    error: err.name || 'ServerError',
+    message: err.message || 'An unexpected error occurred'
   });
 });
 
