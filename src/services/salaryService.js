@@ -337,8 +337,22 @@ class SalaryService {
         activeStructure.netSalary = calculated.netSalary;
         if (data.currency) activeStructure.currency = data.currency.trim().toUpperCase();
         if (data.effectiveFrom) activeStructure.effectiveFrom = data.effectiveFrom;
+        if (data.revisionReason) activeStructure.revisionReason = data.revisionReason.trim();
 
         await activeStructure.save({ transaction });
+
+        // Synchronize BASIC component amount if structure components are present
+        const basicComp = await SalaryComponent.findOne({ where: { code: 'BASIC' }, transaction });
+        if (basicComp) {
+          const empComp = await EmployeeSalaryComponent.findOne({
+            where: { structureId: activeStructure.id, componentId: basicComp.id },
+            transaction
+          });
+          if (empComp) {
+            empComp.amount = calculated.basicSalary;
+            await empComp.save({ transaction });
+          }
+        }
       }
 
       await transaction.commit();
