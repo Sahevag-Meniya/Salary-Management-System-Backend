@@ -19,6 +19,10 @@ db.Designation = require('./designation')(sequelize, Sequelize.DataTypes);
 db.Country = require('./country')(sequelize, Sequelize.DataTypes);
 db.Employee = require('./employee')(sequelize, Sequelize.DataTypes);
 db.Salary = require('./salary')(sequelize, Sequelize.DataTypes);
+db.SalaryComponent = require('./salaryComponent')(sequelize, Sequelize.DataTypes);
+db.EmployeeSalaryStructure = require('./employeeSalaryStructure')(sequelize, Sequelize.DataTypes);
+db.EmployeeSalaryComponent = require('./employeeSalaryComponent')(sequelize, Sequelize.DataTypes);
+db.SalarySlip = require('./salarySlip')(sequelize, Sequelize.DataTypes);
 
 // Set up associations
 Object.keys(db).forEach(modelName => {
