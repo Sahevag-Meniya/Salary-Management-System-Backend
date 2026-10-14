@@ -18,21 +18,25 @@ module.exports = {
         allowNull: false,
         unique: true
       },
-      country: {
-        type: Sequelize.STRING(100),
-        allowNull: false
+      country_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'countries',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'RESTRICT'
       },
-      department: {
-        type: Sequelize.STRING(100),
-        allowNull: false
-      },
-      designation: {
-        type: Sequelize.STRING(100),
-        allowNull: false
-      },
-      currency: {
-        type: Sequelize.STRING(3),
-        allowNull: false
+      designation_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'designations',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'RESTRICT'
       },
       created_at: {
         type: Sequelize.DATE,
@@ -46,11 +50,17 @@ module.exports = {
       }
     });
 
-    // Performance Indexes for 10,000+ records
-    await queryInterface.addIndex('employees', ['name'], { name: 'idx_employees_name' });
-    await queryInterface.addIndex('employees', ['country'], { name: 'idx_employees_country' });
-    await queryInterface.addIndex('employees', ['department'], { name: 'idx_employees_department' });
-    await queryInterface.addIndex('employees', ['designation'], { name: 'idx_employees_designation' });
+    await queryInterface.addIndex('employees', ['name'], {
+      name: 'idx_employees_name'
+    });
+
+    await queryInterface.addIndex('employees', ['country_id'], {
+      name: 'idx_employees_country_id'
+    });
+
+    await queryInterface.addIndex('employees', ['designation_id'], {
+      name: 'idx_employees_designation_id'
+    });
   },
 
   async down(queryInterface, Sequelize) {
