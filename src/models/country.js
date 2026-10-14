@@ -5,8 +5,10 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Country extends Model {
     static associate(models) {
-      // Future association to Employee:
-      // Country.hasMany(models.Employee, { foreignKey: 'country_id', as: 'employees' });
+      Country.hasMany(models.Employee, {
+        foreignKey: 'country_id',
+        as: 'employees'
+      });
     }
   }
 
