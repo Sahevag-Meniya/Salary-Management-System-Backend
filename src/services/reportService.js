@@ -6,6 +6,7 @@ class ReportService {
    * Generates a clean, CSV-formatted string for filtered salary records.
    */
   async generateSalaryCsv({
+    ids,
     search = '',
     country = '',
     department = '',
@@ -15,6 +16,16 @@ class ReportService {
     maxSalary
   }) {
     const employeeWhere = {};
+
+    if (ids) {
+      const idList = Array.isArray(ids)
+        ? ids.map(id => parseInt(id, 10)).filter(n => !isNaN(n))
+        : String(ids).split(',').map(id => parseInt(id.trim(), 10)).filter(n => !isNaN(n));
+
+      if (idList.length > 0) {
+        employeeWhere.id = { [Op.in]: idList };
+      }
+    }
 
     if (search && search.trim()) {
       const searchTerm = `%${search.trim()}%`;
