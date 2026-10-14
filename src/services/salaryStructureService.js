@@ -1,12 +1,21 @@
 const { Op } = require('sequelize');
-const { Employee, EmployeeSalaryStructure, EmployeeSalaryComponent, SalaryComponent, Country, Designation, Department, sequelize } = require('../models');
+const {
+  Employee,
+  EmployeeSalaryStructure,
+  EmployeeSalaryComponent,
+  SalaryComponent,
+  Country,
+  Designation,
+  Department,
+  sequelize
+} = require('../models');
 const { calculateSalary, validateSalaryInput } = require('../utils/calculations');
 
-class SalaryService {
+class SalaryStructureService {
   /**
-   * Retrieves paginated, filtered, and sorted employee salary records.
+   * Retrieves paginated, filtered, and sorted employee salary structures.
    */
-  async getSalaryRecords({
+  async getSalaryStructures({
     search = '',
     country = '',
     department = '',
@@ -137,9 +146,9 @@ class SalaryService {
   }
 
   /**
-   * Fetch a single employee record with salary details.
+   * Fetch a single employee record with active salary structure details.
    */
-  async getSalaryById(id) {
+  async getSalaryStructureById(id) {
     const employee = await Employee.findByPk(id, {
       include: [
         { model: Country, as: 'country' },
@@ -166,16 +175,18 @@ class SalaryService {
     });
 
     if (!employee) {
-      throw new Error(`Employee with ID ${id} not found`);
+      const error = new Error(`Employee with ID ${id} not found`);
+      error.statusCode = 404;
+      throw error;
     }
 
     return employee;
   }
 
   /**
-   * Create a new employee with their salary breakdown.
+   * Create a new employee with their salary structure breakdown.
    */
-  async createSalaryRecord(data) {
+  async createSalaryStructure(data) {
     const validation = validateSalaryInput(data);
     if (!validation.isValid) {
       const error = new Error(validation.errors.join(', '));
@@ -246,7 +257,7 @@ class SalaryService {
         currency,
         effectiveFrom: data.effectiveFrom || new Date().toISOString().split('T')[0],
         isCurrent: true,
-        revisionReason: 'Initial Package'
+        revisionReason: data.revisionReason ? data.revisionReason.trim() : 'Initial Package'
       }, { transaction });
 
       // Find BASIC component ID if available to record line item
@@ -261,7 +272,7 @@ class SalaryService {
 
       await transaction.commit();
 
-      return await this.getSalaryById(employee.id);
+      return await this.getSalaryStructureById(employee.id);
     } catch (err) {
       await transaction.rollback();
       throw err;
@@ -269,9 +280,9 @@ class SalaryService {
   }
 
   /**
-   * Update an existing employee and salary breakdown.
+   * Update an existing employee and their salary structure.
    */
-  async updateSalaryRecord(id, data) {
+  async updateSalaryStructure(id, data) {
     const employee = await Employee.findByPk(id, {
       include: [
         {
@@ -357,7 +368,7 @@ class SalaryService {
 
       await transaction.commit();
 
-      return await this.getSalaryById(id);
+      return await this.getSalaryStructureById(id);
     } catch (err) {
       await transaction.rollback();
       throw err;
@@ -367,7 +378,7 @@ class SalaryService {
   /**
    * Delete an employee record (cascade deletes salary structure).
    */
-  async deleteSalaryRecord(id) {
+  async deleteSalaryStructure(id) {
     const employee = await Employee.findByPk(id);
     if (!employee) {
       const error = new Error(`Employee with ID ${id} not found`);
@@ -376,7 +387,7 @@ class SalaryService {
     }
 
     await employee.destroy();
-    return { success: true, message: `Employee with ID ${id} deleted successfully` };
+    return { success: true, message: `Salary structure for Employee ID ${id} deleted successfully` };
   }
 
   /**
@@ -411,6 +422,27 @@ class SalaryService {
       }))
     };
   }
+
+  // --- Backward-Compatible Aliases ---
+  getSalaryRecords(query) {
+    return this.getSalaryStructures(query);
+  }
+
+  getSalaryById(id) {
+    return this.getSalaryStructureById(id);
+  }
+
+  createSalaryRecord(data) {
+    return this.createSalaryStructure(data);
+  }
+
+  updateSalaryRecord(id, data) {
+    return this.updateSalaryStructure(id, data);
+  }
+
+  deleteSalaryRecord(id) {
+    return this.deleteSalaryStructure(id);
+  }
 }
 
-module.exports = new SalaryService();
+module.exports = new SalaryStructureService();

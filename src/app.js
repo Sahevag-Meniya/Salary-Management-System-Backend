@@ -3,7 +3,7 @@ const cors = require('cors');
 const { sequelize } = require('./models');
 
 // Import routes
-const salaryRoutes = require('./routes/salaryRoutes');
+const salaryStructureRoutes = require('./routes/salaryStructureRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 
@@ -35,7 +35,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Mount API routes
-app.use('/api/salaries', salaryRoutes);
+app.use('/api/structures', salaryStructureRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reports', reportRoutes);
 
@@ -46,7 +46,7 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       health: '/api/health',
-      salaries: '/api/salaries',
+      structures: '/api/structures',
       analytics: '/api/analytics',
       reports: '/api/reports'
     }
