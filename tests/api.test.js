@@ -31,9 +31,23 @@ describe('API Route Endpoints', () => {
     assert.strictEqual(res.body.error, 'Route not found');
   });
 
-  test('POST /api/salaries should return 400 Bad Request on invalid input', async () => {
+  test('GET /api/structures should return status 200 and paginated data', async () => {
+    const res = await request(app).get('/api/structures?limit=5');
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.success, true);
+    assert.ok(Array.isArray(res.body.data));
+  });
+
+  test('GET /api/structures/filters should return filter options', async () => {
+    const res = await request(app).get('/api/structures/filters');
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.success, true);
+    assert.ok(Array.isArray(res.body.data.countries));
+  });
+
+  test('POST /api/structures should return 400 Bad Request on invalid input', async () => {
     const res = await request(app)
-      .post('/api/salaries')
+      .post('/api/structures')
       .send({
         name: '',
         email: 'invalid-email'

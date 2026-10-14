@@ -422,27 +422,6 @@ class SalaryStructureService {
       }))
     };
   }
-
-  // --- Backward-Compatible Aliases ---
-  getSalaryRecords(query) {
-    return this.getSalaryStructures(query);
-  }
-
-  getSalaryById(id) {
-    return this.getSalaryStructureById(id);
-  }
-
-  createSalaryRecord(data) {
-    return this.createSalaryStructure(data);
-  }
-
-  updateSalaryRecord(id, data) {
-    return this.updateSalaryStructure(id, data);
-  }
-
-  deleteSalaryRecord(id) {
-    return this.deleteSalaryStructure(id);
-  }
 }
 
 module.exports = new SalaryStructureService();

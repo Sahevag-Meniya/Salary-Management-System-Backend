@@ -74,27 +74,6 @@ class SalaryStructureController {
       next(err);
     }
   }
-
-  // --- Backward-Compatible Aliases ---
-  getSalaries(req, res, next) {
-    return this.getSalaryStructures(req, res, next);
-  }
-
-  getSalaryById(req, res, next) {
-    return this.getSalaryStructureById(req, res, next);
-  }
-
-  createSalary(req, res, next) {
-    return this.createSalaryStructure(req, res, next);
-  }
-
-  updateSalary(req, res, next) {
-    return this.updateSalaryStructure(req, res, next);
-  }
-
-  deleteSalary(req, res, next) {
-    return this.deleteSalaryStructure(req, res, next);
-  }
 }
 
 module.exports = new SalaryStructureController();
