@@ -260,14 +260,28 @@ class SalaryStructureService {
         revisionReason: data.revisionReason ? data.revisionReason.trim() : 'Initial Package'
       }, { transaction });
 
-      // Find BASIC component ID if available to record line item
-      const basicComp = await SalaryComponent.findOne({ where: { code: 'BASIC' }, transaction });
-      if (basicComp) {
-        await EmployeeSalaryComponent.create({
-          structureId: structure.id,
-          componentId: basicComp.id,
-          amount: calculated.basicSalary
-        }, { transaction });
+      // Record itemized salary components if provided, else fallback to BASIC
+      if (Array.isArray(data.components) && data.components.length > 0) {
+        for (const comp of data.components) {
+          const compId = comp.componentId || comp.id;
+          const amt = parseFloat(comp.amount) || 0;
+          if (compId) {
+            await EmployeeSalaryComponent.create({
+              structureId: structure.id,
+              componentId: compId,
+              amount: amt
+            }, { transaction });
+          }
+        }
+      } else {
+        const basicComp = await SalaryComponent.findOne({ where: { code: 'BASIC' }, transaction });
+        if (basicComp) {
+          await EmployeeSalaryComponent.create({
+            structureId: structure.id,
+            componentId: basicComp.id,
+            amount: calculated.basicSalary
+          }, { transaction });
+        }
       }
 
       await transaction.commit();
@@ -352,16 +366,36 @@ class SalaryStructureService {
 
         await activeStructure.save({ transaction });
 
-        // Synchronize BASIC component amount if structure components are present
-        const basicComp = await SalaryComponent.findOne({ where: { code: 'BASIC' }, transaction });
-        if (basicComp) {
-          const empComp = await EmployeeSalaryComponent.findOne({
-            where: { structureId: activeStructure.id, componentId: basicComp.id },
+        // Update itemized salary components if provided
+        if (Array.isArray(data.components) && data.components.length > 0) {
+          await EmployeeSalaryComponent.destroy({
+            where: { structureId: activeStructure.id },
             transaction
           });
-          if (empComp) {
-            empComp.amount = calculated.basicSalary;
-            await empComp.save({ transaction });
+
+          for (const comp of data.components) {
+            const compId = comp.componentId || comp.id;
+            const amt = parseFloat(comp.amount) || 0;
+            if (compId) {
+              await EmployeeSalaryComponent.create({
+                structureId: activeStructure.id,
+                componentId: compId,
+                amount: amt
+              }, { transaction });
+            }
+          }
+        } else {
+          // Synchronize BASIC component amount if structure components are present
+          const basicComp = await SalaryComponent.findOne({ where: { code: 'BASIC' }, transaction });
+          if (basicComp) {
+            const empComp = await EmployeeSalaryComponent.findOne({
+              where: { structureId: activeStructure.id, componentId: basicComp.id },
+              transaction
+            });
+            if (empComp) {
+              empComp.amount = calculated.basicSalary;
+              await empComp.save({ transaction });
+            }
           }
         }
       }
@@ -394,7 +428,7 @@ class SalaryStructureService {
    * Return distinct values for filter dropdowns.
    */
   async getFilterOptions() {
-    const [countries, departments, designations, currencies] = await Promise.all([
+    const [countries, departments, designations, currencies, salaryComponents] = await Promise.all([
       Country.findAll({ attributes: ['id', 'name', 'code', 'currencyCode', 'currencySymbol'], order: [['name', 'ASC']], raw: true }),
       Department.findAll({ attributes: ['id', 'name'], order: [['name', 'ASC']], raw: true }),
       Designation.findAll({
@@ -402,7 +436,13 @@ class SalaryStructureService {
         include: [{ model: Department, as: 'department', attributes: ['name'] }],
         order: [['name', 'ASC']]
       }),
-      EmployeeSalaryStructure.findAll({ attributes: [[sequelize.fn('DISTINCT', sequelize.col('currency')), 'currency']], raw: true })
+      EmployeeSalaryStructure.findAll({ attributes: [[sequelize.fn('DISTINCT', sequelize.col('currency')), 'currency']], raw: true }),
+      SalaryComponent.findAll({
+        where: { isActive: true },
+        attributes: ['id', 'name', 'code', 'type', 'calculationType', 'defaultValue', 'percentageOfComponentId', 'isActive'],
+        order: [['type', 'ASC'], ['id', 'ASC']],
+        raw: true
+      })
     ]);
 
     const distinctDesignationNames = [...new Set(designations.map(d => d.name))].sort();
@@ -419,7 +459,8 @@ class SalaryStructureService {
         name: d.name,
         departmentId: d.department_id || d.departmentId,
         departmentName: d.department?.name || ''
-      }))
+      })),
+      components: salaryComponents
     };
   }
 }
