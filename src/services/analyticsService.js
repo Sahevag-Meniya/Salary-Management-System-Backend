@@ -20,7 +20,8 @@ class AnalyticsService {
         ROUND(AVG(net_salary), 2) as avg_net,
         ROUND(MIN(net_salary), 2) as min_net,
         ROUND(MAX(net_salary), 2) as max_net
-      FROM salaries
+      FROM employee_salary_structures
+      WHERE is_current = 1
       GROUP BY currency
       ORDER BY count DESC
     `);
@@ -48,8 +49,8 @@ class AnalyticsService {
   async getByCountry() {
     const [rows] = await sequelize.query(`
       SELECT 
-        e.country,
-        e.currency,
+        c.name as country,
+        s.currency,
         COUNT(e.id) as headcount,
         ROUND(SUM(s.gross_salary), 2) as total_gross,
         ROUND(SUM(s.net_salary), 2) as total_net,
@@ -57,8 +58,9 @@ class AnalyticsService {
         ROUND(MIN(s.net_salary), 2) as min_net,
         ROUND(MAX(s.net_salary), 2) as max_net
       FROM employees e
-      INNER JOIN salaries s ON e.id = s.employee_id
-      GROUP BY e.country, e.currency
+      INNER JOIN countries c ON e.country_id = c.id
+      INNER JOIN employee_salary_structures s ON e.id = s.employee_id AND s.is_current = 1
+      GROUP BY c.name, s.currency
       ORDER BY headcount DESC
     `);
 
@@ -80,15 +82,17 @@ class AnalyticsService {
   async getByDepartment() {
     const [rows] = await sequelize.query(`
       SELECT 
-        e.department,
-        e.currency,
+        d.name as department,
+        s.currency,
         COUNT(e.id) as headcount,
         ROUND(SUM(s.net_salary), 2) as total_net,
         ROUND(AVG(s.net_salary), 2) as avg_net
       FROM employees e
-      INNER JOIN salaries s ON e.id = s.employee_id
-      GROUP BY e.department, e.currency
-      ORDER BY e.department ASC, headcount DESC
+      INNER JOIN designations des ON e.designation_id = des.id
+      INNER JOIN departments d ON des.department_id = d.id
+      INNER JOIN employee_salary_structures s ON e.id = s.employee_id AND s.is_current = 1
+      GROUP BY d.name, s.currency
+      ORDER BY d.name ASC, headcount DESC
     `);
 
     return rows.map(r => ({
@@ -106,16 +110,17 @@ class AnalyticsService {
   async getByDesignation() {
     const [rows] = await sequelize.query(`
       SELECT 
-        e.designation,
-        e.currency,
+        des.name as designation,
+        s.currency,
         COUNT(e.id) as headcount,
         ROUND(AVG(s.net_salary), 2) as avg_net,
         ROUND(MIN(s.net_salary), 2) as min_net,
         ROUND(MAX(s.net_salary), 2) as max_net
       FROM employees e
-      INNER JOIN salaries s ON e.id = s.employee_id
-      GROUP BY e.designation, e.currency
-      ORDER BY e.designation ASC
+      INNER JOIN designations des ON e.designation_id = des.id
+      INNER JOIN employee_salary_structures s ON e.id = s.employee_id AND s.is_current = 1
+      GROUP BY des.name, s.currency
+      ORDER BY des.name ASC
     `);
 
     return rows.map(r => ({
@@ -139,15 +144,18 @@ class AnalyticsService {
           e.id,
           e.name,
           e.email,
-          e.country,
-          e.department,
-          e.designation,
-          e.currency,
+          c.name as country,
+          d.name as department,
+          des.name as designation,
+          s.currency,
           s.gross_salary as gross_salary,
           s.net_salary as net_salary,
-          ROW_NUMBER() OVER (PARTITION BY e.currency ORDER BY s.net_salary DESC) as rn
+          ROW_NUMBER() OVER (PARTITION BY s.currency ORDER BY s.net_salary DESC) as rn
         FROM employees e
-        INNER JOIN salaries s ON e.id = s.employee_id
+        INNER JOIN countries c ON e.country_id = c.id
+        INNER JOIN designations des ON e.designation_id = des.id
+        INNER JOIN departments d ON des.department_id = d.id
+        INNER JOIN employee_salary_structures s ON e.id = s.employee_id AND s.is_current = 1
       )
       SELECT 
         id,

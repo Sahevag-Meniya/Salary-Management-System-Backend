@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Employee, Salary } = require('../models');
+const { Employee, EmployeeSalaryStructure, Country, Department, Designation } = require('../models');
 
 class ReportService {
   /**
@@ -35,12 +35,10 @@ class ReportService {
       ];
     }
 
-    if (country && country.trim()) employeeWhere.country = country.trim();
-    if (department && department.trim()) employeeWhere.department = department.trim();
-    if (designation && designation.trim()) employeeWhere.designation = designation.trim();
-    if (currency && currency.trim()) employeeWhere.currency = currency.trim().toUpperCase();
-
-    const salaryWhere = {};
+    const salaryWhere = { isCurrent: true };
+    if (currency && currency.trim()) {
+      salaryWhere.currency = currency.trim().toUpperCase();
+    }
     if (minSalary !== undefined && minSalary !== '' && !isNaN(minSalary)) {
       salaryWhere.netSalary = { ...(salaryWhere.netSalary || {}), [Op.gte]: parseFloat(minSalary) };
     }
@@ -52,9 +50,29 @@ class ReportService {
       where: employeeWhere,
       include: [
         {
-          model: Salary,
-          as: 'salary',
-          where: Object.keys(salaryWhere).length > 0 ? salaryWhere : undefined,
+          model: Country,
+          as: 'country',
+          where: country && country.trim() ? { name: country.trim() } : undefined,
+          required: !!(country && country.trim())
+        },
+        {
+          model: Designation,
+          as: 'designation',
+          where: designation && designation.trim() ? { name: designation.trim() } : undefined,
+          required: !!(designation && designation.trim()) || !!(department && department.trim()),
+          include: [
+            {
+              model: Department,
+              as: 'department',
+              where: department && department.trim() ? { name: department.trim() } : undefined,
+              required: !!(department && department.trim())
+            }
+          ]
+        },
+        {
+          model: EmployeeSalaryStructure,
+          as: 'salaryStructure',
+          where: salaryWhere,
           required: true
         }
       ],
@@ -84,16 +102,17 @@ class ReportService {
       'Effective From'
     ];
 
-    const rows = records.map(r => {
+    const rows = records.map(empInstance => {
+      const r = empInstance.toJSON();
       const s = r.salary || {};
       return [
         r.id,
         escapeCsv(r.name),
         escapeCsv(r.email),
-        escapeCsv(r.country),
-        escapeCsv(r.department),
-        escapeCsv(r.designation),
-        escapeCsv(r.currency),
+        escapeCsv(r.country || r.countryDetails?.name || ''),
+        escapeCsv(r.department || ''),
+        escapeCsv(r.designation || r.designationDetails?.name || ''),
+        escapeCsv(s.currency || r.currency || ''),
         s.basicSalary !== undefined ? s.basicSalary : 0,
         s.allowances !== undefined ? s.allowances : 0,
         s.deductions !== undefined ? s.deductions : 0,
