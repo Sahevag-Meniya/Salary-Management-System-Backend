@@ -13,11 +13,6 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'designation_id',
         as: 'designation'
       });
-      Employee.hasOne(models.Salary, {
-        foreignKey: 'employee_id',
-        as: 'salary',
-        onDelete: 'CASCADE'
-      });
       Employee.hasMany(models.EmployeeSalaryStructure, {
         foreignKey: 'employee_id',
         as: 'salaryStructures',
