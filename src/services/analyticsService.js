@@ -127,6 +127,59 @@ class AnalyticsService {
       maxNet: parseFloat(r.max_net) || 0
     }));
   }
+
+  /**
+   * Top earners / highest paid employees partitioned by currency.
+   */
+  async getTopEarners(limit = 5) {
+    const limitNum = Math.max(1, parseInt(limit, 10) || 5);
+    const [rows] = await sequelize.query(`
+      WITH RankedEmployees AS (
+        SELECT 
+          e.id,
+          e.name,
+          e.email,
+          e.country,
+          e.department,
+          e.designation,
+          e.currency,
+          s.gross_salary as gross_salary,
+          s.net_salary as net_salary,
+          ROW_NUMBER() OVER (PARTITION BY e.currency ORDER BY s.net_salary DESC) as rn
+        FROM employees e
+        INNER JOIN salaries s ON e.id = s.employee_id
+      )
+      SELECT 
+        id,
+        name,
+        email,
+        country,
+        department,
+        designation,
+        currency,
+        ROUND(gross_salary, 2) as gross_salary,
+        ROUND(net_salary, 2) as net_salary,
+        rn as \`rank\`
+      FROM RankedEmployees
+      WHERE rn <= :limit
+      ORDER BY currency ASC, rn ASC
+    `, {
+      replacements: { limit: limitNum }
+    });
+
+    return rows.map(r => ({
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      country: r.country,
+      department: r.department,
+      designation: r.designation,
+      currency: r.currency,
+      grossSalary: parseFloat(r.gross_salary) || 0,
+      netSalary: parseFloat(r.net_salary) || 0,
+      rank: parseInt(r.rank, 10)
+    }));
+  }
 }
 
 module.exports = new AnalyticsService();

@@ -48,6 +48,19 @@ class AnalyticsController {
       next(err);
     }
   }
+
+  async getTopEarners(req, res, next) {
+    try {
+      const limit = req.query.limit || 5;
+      const data = await analyticsService.getTopEarners(limit);
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AnalyticsController();

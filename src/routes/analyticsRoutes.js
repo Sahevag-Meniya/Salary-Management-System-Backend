@@ -14,4 +14,7 @@ router.get('/by-department', (req, res, next) => analyticsController.getByDepart
 // Designation-wise breakdown
 router.get('/by-designation', (req, res, next) => analyticsController.getByDesignation(req, res, next));
 
+// Top earners breakdown
+router.get('/top-earners', (req, res, next) => analyticsController.getTopEarners(req, res, next));
+
 module.exports = router;
