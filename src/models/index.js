@@ -16,6 +16,7 @@ const db = {};
 // Import models
 db.Department = require('./department')(sequelize, Sequelize.DataTypes);
 db.Designation = require('./designation')(sequelize, Sequelize.DataTypes);
+db.Country = require('./country')(sequelize, Sequelize.DataTypes);
 db.Employee = require('./employee')(sequelize, Sequelize.DataTypes);
 db.Salary = require('./salary')(sequelize, Sequelize.DataTypes);
 
