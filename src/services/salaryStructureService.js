@@ -73,8 +73,8 @@ class SalaryStructureService {
     }
 
     // Handle dynamic sorting
-    let orderClause = [['id', 'ASC']];
     const direction = String(sortOrder).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    let orderClause = [['id', direction]];
 
     if (sortBy === 'name') {
       orderClause = [['name', direction]];
@@ -85,11 +85,11 @@ class SalaryStructureService {
     } else if (sortBy === 'designation') {
       orderClause = [[{ model: Designation, as: 'designation' }, 'name', direction]];
     } else if (sortBy === 'basicSalary' || sortBy === 'basic_salary') {
-      orderClause = [[{ model: EmployeeSalaryStructure, as: 'salaryStructure' }, 'gross_salary', direction]];
+      orderClause = [[{ model: EmployeeSalaryStructure, as: 'salaryStructure' }, 'grossSalary', direction]];
     } else if (sortBy === 'netSalary' || sortBy === 'net_salary') {
-      orderClause = [[{ model: EmployeeSalaryStructure, as: 'salaryStructure' }, 'net_salary', direction]];
+      orderClause = [[{ model: EmployeeSalaryStructure, as: 'salaryStructure' }, 'netSalary', direction]];
     } else if (sortBy === 'grossSalary' || sortBy === 'gross_salary') {
-      orderClause = [[{ model: EmployeeSalaryStructure, as: 'salaryStructure' }, 'gross_salary', direction]];
+      orderClause = [[{ model: EmployeeSalaryStructure, as: 'salaryStructure' }, 'grossSalary', direction]];
     }
 
     const { count, rows } = await Employee.findAndCountAll({
@@ -119,15 +119,7 @@ class SalaryStructureService {
           model: EmployeeSalaryStructure,
           as: 'salaryStructure',
           where: salaryWhere,
-          required: true,
-          include: [
-            {
-              model: EmployeeSalaryComponent,
-              as: 'components',
-              required: false,
-              include: [{ model: SalaryComponent, as: 'component' }]
-            }
-          ]
+          required: true
         }
       ],
       order: orderClause,
@@ -135,6 +127,24 @@ class SalaryStructureService {
       offset,
       distinct: true
     });
+
+    const structureIds = rows.map(r => r.salaryStructure?.id).filter(Boolean);
+    if (structureIds.length > 0) {
+      const components = await EmployeeSalaryComponent.findAll({
+        where: { structureId: structureIds },
+        include: [{ model: SalaryComponent, as: 'component' }]
+      });
+      const compMap = {};
+      for (const c of components) {
+        if (!compMap[c.structureId]) compMap[c.structureId] = [];
+        compMap[c.structureId].push(c);
+      }
+      for (const r of rows) {
+        if (r.salaryStructure && compMap[r.salaryStructure.id]) {
+          r.salaryStructure.setDataValue('components', compMap[r.salaryStructure.id]);
+        }
+      }
+    }
 
     return {
       total: count,
