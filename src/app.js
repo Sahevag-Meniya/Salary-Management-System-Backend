@@ -63,8 +63,10 @@ app.use((req, res) => {
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-  console.error('API Error:', err.message || err);
   const status = err.statusCode || 500;
+  if (status >= 500 && process.env.NODE_ENV !== 'test') {
+    console.error('Server Error:', err.message || err);
+  }
   res.status(status).json({
     success: false,
     error: err.name || 'ServerError',

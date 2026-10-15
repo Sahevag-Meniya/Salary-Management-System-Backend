@@ -107,3 +107,33 @@ describe('Salary Input Validation', () => {
     assert.ok(result.errors.some(e => e.includes('positive number')));
   });
 });
+
+describe('Itemized Component Rules & Formula Calculations', () => {
+  test('should accurately compute percentage components (HRA 40%, DA 10%, PF 12%) and statutory defaults', () => {
+    const basicPay = 50000;
+    const hra = Math.round(basicPay * 0.40);
+    const da = Math.round(basicPay * 0.10);
+    const pf = Math.round(basicPay * 0.12);
+    const conveyance = 1600;
+    const medical = 1250;
+    const profTax = 200;
+    const healthIns = 500;
+
+    assert.strictEqual(hra, 20000);
+    assert.strictEqual(da, 5000);
+    assert.strictEqual(pf, 6000);
+
+    const totalAllowances = hra + da + conveyance + medical; // 27850
+    const totalDeductions = pf + profTax + healthIns;        // 6700
+
+    const salary = calculateSalary({
+      basicSalary: basicPay,
+      allowances: totalAllowances,
+      deductions: totalDeductions
+    });
+
+    assert.strictEqual(salary.grossSalary, 77850);
+    assert.strictEqual(salary.deductions, 6700);
+    assert.strictEqual(salary.netSalary, 71150);
+  });
+});
