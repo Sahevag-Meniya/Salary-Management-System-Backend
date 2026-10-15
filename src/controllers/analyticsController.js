@@ -51,8 +51,8 @@ class AnalyticsController {
 
   async getTopEarners(req, res, next) {
     try {
-      const limit = req.query.limit || 5;
-      const data = await analyticsService.getTopEarners(limit);
+      const { currency } = req.query;
+      const data = await analyticsService.getTopEarners(currency);
       res.status(200).json({
         success: true,
         data

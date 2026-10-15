@@ -134,10 +134,47 @@ class AnalyticsService {
   }
 
   /**
-   * Top earners / highest paid employees partitioned by currency.
+   * Top earners / highest paid employees for a currency (or partitioned by currency).
    */
-  async getTopEarners(limit = 5) {
-    const limitNum = Math.max(1, parseInt(limit, 10) || 5);
+  async getTopEarners(currency) {
+    if (currency) {
+      const [rows] = await sequelize.query(`
+        SELECT 
+          e.id,
+          e.name,
+          e.email,
+          c.name as country,
+          d.name as department,
+          des.name as designation,
+          s.currency,
+          ROUND(s.gross_salary, 2) as gross_salary,
+          ROUND(s.net_salary, 2) as net_salary
+        FROM employees e
+        INNER JOIN countries c ON e.country_id = c.id
+        INNER JOIN designations des ON e.designation_id = des.id
+        INNER JOIN departments d ON des.department_id = d.id
+        INNER JOIN employee_salary_structures s ON e.id = s.employee_id AND s.is_current = 1
+        WHERE s.currency = :currency
+        ORDER BY s.net_salary DESC
+        LIMIT 5
+      `, {
+        replacements: { currency }
+      });
+
+      return rows.map((r, idx) => ({
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        country: r.country,
+        department: r.department,
+        designation: r.designation,
+        currency: r.currency,
+        grossSalary: parseFloat(r.gross_salary) || 0,
+        netSalary: parseFloat(r.net_salary) || 0,
+        rank: idx + 1
+      }));
+    }
+
     const [rows] = await sequelize.query(`
       WITH RankedEmployees AS (
         SELECT 
@@ -169,11 +206,9 @@ class AnalyticsService {
         ROUND(net_salary, 2) as net_salary,
         rn as \`rank\`
       FROM RankedEmployees
-      WHERE rn <= :limit
+      WHERE rn <= 5
       ORDER BY currency ASC, rn ASC
-    `, {
-      replacements: { limit: limitNum }
-    });
+    `);
 
     return rows.map(r => ({
       id: r.id,
